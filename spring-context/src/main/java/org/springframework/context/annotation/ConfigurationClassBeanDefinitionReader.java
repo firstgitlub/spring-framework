@@ -122,6 +122,9 @@ class ConfigurationClassBeanDefinitionReader {
 	/**
 	 * Read {@code configurationModel}, registering bean definitions
 	 * with the registry based on its contents.
+	 *
+	 * loadBeanDefinitions，开始循环解析配置类。这里是所有自定义的配置类和自动装配的配置类
+	 *
 	 */
 	public void loadBeanDefinitions(Set<ConfigurationClass> configurationModel) {
 		TrackedConditionEvaluator trackedConditionEvaluator = new TrackedConditionEvaluator();
@@ -133,6 +136,10 @@ class ConfigurationClassBeanDefinitionReader {
 	/**
 	 * Read a particular {@link ConfigurationClass}, registering bean definitions
 	 * for the class itself and all of its {@link Bean} methods.
+	 *
+	 * 在解析方法 loadBeanDefinitionsForConfigurationClass() 中，会获得配置类中定义bean的所有方法，
+	 * 并调用loadBeanDefinitionsForBeanMethod()方法来进行循环解析，解析时会执行如下校验方法，也正是条件注解的入口
+	 *
 	 */
 	private void loadBeanDefinitionsForConfigurationClass(
 			ConfigurationClass configClass, TrackedConditionEvaluator trackedConditionEvaluator) {

@@ -98,6 +98,18 @@ import org.springframework.util.ClassUtils;
  * 因为 spring bean初始化的前提条件就是有对应的bean definition，
  * 条件注解正是通过判断bean definition来控制bean能否实例化
  *
+ *  * 在spring ioc的过程中，优先解析@Component，@Service，@Controller注解的类。
+ *  * 其次解析配置类，也就是@Configuration标注的类。最后开始解析配置类中定义的bean。
+ *  * 示例代码中bean1是定义在配置类中的，当执行到配置类解析的时候，
+ *  * @Component，@Service，@Controller ,@Configuration标注的类已经全部被解析，所以这些BeanDifinition已经被同步。
+ *  * 但是bean1的条件注解依赖的是bean2，bean2是被定义的配置类中的，因为两个Bean都是配置类中Bean，
+ *  * 所以此时配置类的解析无法保证先后顺序，就会出现不生效的情况。
+ *  *
+ *  * 同样的道理，如果依赖的是FeignClient，也有可能会出现不生效的情况。
+ *  * 因为FeignClient最终还是由配置类触发，解析的先后顺序也不能保证。
+ *  *
+ *  * https://blog.csdn.net/woshilijiuyi/article/details/84147483
+ *
  */
 // 一个很重要的类
 public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPostProcessor,
@@ -352,9 +364,11 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 		Set<ConfigurationClass> alreadyParsed = new HashSet<>(configCandidates.size());
 		do {
 			StartupStep processConfig = this.applicationStartup.start("spring.context.config-classes.parse");
+			//解析候选bean，先获取所有的配置类，也就是@Configuration标注的类
 			parser.parse(candidates);
 			parser.validate();
 
+			//配置类存入集合
 			Set<ConfigurationClass> configClasses = new LinkedHashSet<>(parser.getConfigurationClasses());
 			configClasses.removeAll(alreadyParsed);
 
@@ -364,6 +378,8 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 						registry, this.sourceExtractor, this.resourceLoader, this.environment,
 						this.importBeanNameGenerator, parser.getImportRegistry());
 			}
+
+			//开始解析配置类，也就是条件注解解析的入口
 			this.reader.loadBeanDefinitions(configClasses);
 			alreadyParsed.addAll(configClasses);
 			processConfig.tag("classCount", () -> String.valueOf(configClasses.size())).end();
