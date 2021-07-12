@@ -107,6 +107,11 @@ import org.springframework.util.StringUtils;
  * @author Stephane Nicoll
  * @since 3.0
  * @see ConfigurationClassBeanDefinitionReader
+ *
+ * 首先获得ConfigurationClassParser，这个是所有配置类的解析类，比较核心。
+ * 所有的解析逻辑在parser.parse(candidates)
+ *
+ * https://blog.csdn.net/woshilijiuyi/article/details/82388509
  */
 class ConfigurationClassParser {
 
@@ -171,6 +176,7 @@ class ConfigurationClassParser {
 		for (BeanDefinitionHolder holder : configCandidates) {
 			BeanDefinition bd = holder.getBeanDefinition();
 			try {
+				//是否是注解类
 				if (bd instanceof AnnotatedBeanDefinition) {
 					parse(((AnnotatedBeanDefinition) bd).getMetadata(), holder.getBeanName());
 				}
@@ -190,6 +196,7 @@ class ConfigurationClassParser {
 			}
 		}
 
+		//执行配置类
 		this.deferredImportSelectorHandler.process();
 	}
 
@@ -247,6 +254,8 @@ class ConfigurationClassParser {
 		// Recursively process the configuration class and its superclass hierarchy.
 		SourceClass sourceClass = asSourceClass(configClass, filter);
 		do {
+
+			//循环处理bean，如果有父类，则处理父类。直至结束。
 			sourceClass = doProcessConfigurationClass(configClass, sourceClass, filter);
 		}
 		while (sourceClass != null);
@@ -261,6 +270,11 @@ class ConfigurationClassParser {
 	 * @param configClass the configuration class being build
 	 * @param sourceClass a source class
 	 * @return the superclass, or {@code null} if none found or previously processed
+	 *
+	 * 继续跟进doProcessConfigurationClass方法，
+	 * 该方法可以说是 spring 框架支持注解配置的核心逻辑了，来看看：
+	 *
+	 * https://blog.csdn.net/woshilijiuyi/article/details/82388509
 	 */
 	@Nullable
 	protected final SourceClass doProcessConfigurationClass(
@@ -269,10 +283,13 @@ class ConfigurationClassParser {
 
 		if (configClass.getMetadata().isAnnotated(Component.class.getName())) {
 			// Recursively process any member (nested) classes first
+
+			//处理内部类逻辑，由于传来的参数是我们的启动类，不含内部类，所以跳过。
 			processMemberClasses(configClass, sourceClass, filter);
 		}
 
 		// Process any @PropertySource annotations
+		//针对属性配置的解析
 		for (AnnotationAttributes propertySource : AnnotationConfigUtils.attributesForRepeatable(
 				sourceClass.getMetadata(), PropertySources.class,
 				org.springframework.context.annotation.PropertySource.class)) {
@@ -286,21 +303,28 @@ class ConfigurationClassParser {
 		}
 
 		// Process any @ComponentScan annotations
+		//这里是根据启动类 @ComponentScan 注解来扫描项目中的bean
 		Set<AnnotationAttributes> componentScans = AnnotationConfigUtils.attributesForRepeatable(
 				sourceClass.getMetadata(), ComponentScans.class, ComponentScan.class);
 		if (!componentScans.isEmpty() &&
 				!this.conditionEvaluator.shouldSkip(sourceClass.getMetadata(), ConfigurationPhase.REGISTER_BEAN)) {
 			for (AnnotationAttributes componentScan : componentScans) {
+
 				// The config class is annotated with @ComponentScan -> perform the scan immediately
 				Set<BeanDefinitionHolder> scannedBeanDefinitions =
 						this.componentScanParser.parse(componentScan, sourceClass.getMetadata().getClassName());
+
 				// Check the set of scanned definitions for any further config classes and parse recursively if needed
+				//遍历我们项目中的bean，如果是注解定义的bean，则进一步解析
 				for (BeanDefinitionHolder holder : scannedBeanDefinitions) {
 					BeanDefinition bdCand = holder.getBeanDefinition().getOriginatingBeanDefinition();
 					if (bdCand == null) {
 						bdCand = holder.getBeanDefinition();
 					}
+
+					//判断是否是注解bean
 					if (ConfigurationClassUtils.checkConfigurationClassCandidate(bdCand, this.metadataReaderFactory)) {
+						//这里是关键，递归解析。所有的bean，如果有注解，会进一步解析注解中包含的bean
 						parse(bdCand.getBeanClassName(), holder.getBeanName());
 					}
 				}
@@ -308,9 +332,11 @@ class ConfigurationClassParser {
 		}
 
 		// Process any @Import annotations
+		//这里又是一个递归解析，获取导入的配置类。很多情况下，导入的配置类中会同样包含导入类注解。
 		processImports(configClass, sourceClass, getImports(sourceClass), filter, true);
 
 		// Process any @ImportResource annotations
+		//解析导入的 xml 配置类
 		AnnotationAttributes importResource =
 				AnnotationConfigUtils.attributesFor(sourceClass.getMetadata(), ImportResource.class);
 		if (importResource != null) {
@@ -329,9 +355,11 @@ class ConfigurationClassParser {
 		}
 
 		// Process default methods on interfaces
+		// 获取接口中的默认方法，1.8以上的处理逻辑
 		processInterfaces(configClass, sourceClass);
 
 		// Process superclass, if any
+		//如果该类有父类，则继续返回。上层方法判断不为空，则继续递归执行。
 		if (sourceClass.getMetadata().hasSuperClass()) {
 			String superclass = sourceClass.getMetadata().getSuperClassName();
 			if (superclass != null && !superclass.startsWith("java") &&
@@ -343,6 +371,7 @@ class ConfigurationClassParser {
 		}
 
 		// No superclass -> processing is complete
+		//递归实现，superclass为空，则结束递归中的循环
 		return null;
 	}
 
@@ -383,6 +412,7 @@ class ConfigurationClassParser {
 	 * Register default methods on interfaces implemented by the configuration class.
 	 */
 	private void processInterfaces(ConfigurationClass configClass, SourceClass sourceClass) throws IOException {
+		// 获取接口中的默认方法，1.8以上的处理逻辑
 		for (SourceClass ifc : sourceClass.getInterfaces()) {
 			Set<MethodMetadata> beanMethods = retrieveBeanMethodMetadata(ifc);
 			for (MethodMetadata methodMetadata : beanMethods) {
@@ -568,6 +598,8 @@ class ConfigurationClassParser {
 					if (candidate.isAssignable(ImportSelector.class)) {
 						// Candidate class is an ImportSelector -> delegate to it to determine imports
 						Class<?> candidateClass = candidate.loadClass();
+
+						// 获取的 selector 对象为 EnableAutoConfigurationImportSelector
 						ImportSelector selector = ParserStrategyUtils.instantiateClass(candidateClass, ImportSelector.class,
 								this.environment, this.resourceLoader, this.registry);
 						Predicate<String> selectorFilter = selector.getExclusionFilter();
@@ -578,8 +610,10 @@ class ConfigurationClassParser {
 							this.deferredImportSelectorHandler.handle(configClass, (DeferredImportSelector) selector);
 						}
 						else {
+							//获取配置类
 							String[] importClassNames = selector.selectImports(currentSourceClass.getMetadata());
 							Collection<SourceClass> importSourceClasses = asSourceClasses(importClassNames, exclusionFilter);
+							//再次递归解析配置类
 							processImports(configClass, currentSourceClass, importSourceClasses, exclusionFilter, false);
 						}
 					}

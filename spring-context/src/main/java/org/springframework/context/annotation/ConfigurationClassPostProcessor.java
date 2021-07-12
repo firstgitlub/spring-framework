@@ -91,6 +91,13 @@ import org.springframework.util.ClassUtils;
  * @author Phillip Webb
  * @author Sam Brannen
  * @since 3.0
+ *
+ * https://blog.csdn.net/woshilijiuyi/article/details/84147483
+ *
+ * 首先要明确一点，条件注解的解析一定发生在spring ioc的bean definition阶段，
+ * 因为 spring bean初始化的前提条件就是有对应的bean definition，
+ * 条件注解正是通过判断bean definition来控制bean能否实例化
+ *
  */
 // 一个很重要的类
 public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPostProcessor,
@@ -235,6 +242,9 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 
 	/**
 	 * Derive further bean definitions from the configuration classes in the registry.
+	 *
+	 * 从注册中心中的配置类派生进一步的bean定义。
+	 *
 	 */
 	@Override
 	public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) {
@@ -249,6 +259,7 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 		}
 		this.registriesPostProcessed.add(registryId);
 
+		// 解析bean definition入口
 		processConfigBeanDefinitions(registry);
 	}
 
@@ -270,6 +281,13 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 			processConfigBeanDefinitions((BeanDefinitionRegistry) beanFactory);
 		}
 
+		/**
+		 * 到这里，答案清晰浮现。internalConfigurationAnnotationProcessor为bean名称，
+		 * 容器中真正的类则是ConfigurationClassPostProcessor。
+		 *
+		 * 继续后面流程，获取ConfigurationClassPostProcessor后，
+		 * 开始执行BeanDefinitionRegistryPostProcessor
+		 */
 		enhanceConfigurationClasses(beanFactory);
 		beanFactory.addBeanPostProcessor(new ImportAwareBeanPostProcessor(beanFactory));
 	}
@@ -325,6 +343,7 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 		}
 
 		// Parse each @Configuration class
+		// 解析每个@Configuration类
 		ConfigurationClassParser parser = new ConfigurationClassParser(
 				this.metadataReaderFactory, this.problemReporter, this.environment,
 				this.resourceLoader, this.componentScanBeanNameGenerator, registry);
