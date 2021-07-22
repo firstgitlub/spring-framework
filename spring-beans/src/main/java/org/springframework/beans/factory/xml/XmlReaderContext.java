@@ -46,6 +46,7 @@ public class XmlReaderContext extends ReaderContext {
 
 	private final XmlBeanDefinitionReader reader;
 
+	// DefaultNamespaceHandlerResolver
 	private final NamespaceHandlerResolver namespaceHandlerResolver;
 
 

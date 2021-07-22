@@ -42,6 +42,15 @@ import org.springframework.util.ClassUtils;
  * @author Juergen Hoeller
  * @author Ramnivas Laddad
  * @since 2.0
+ *
+ *
+ * 在SpringBoot2.x中最主要的变化就是proxy-target-class默认为true，
+ * 意味着类代理的时候全部走cglib代理方式，只有为接口代理时才走jdk代理(注意：
+ *
+ * 这里为接口代理，不是指代理目标类是否实现了接口)。
+ * 所以，在使用springboot2.x的版本中，除了代理目标类是接口外，其余的代理方式全部采用cglib类型
+ *
+ *
  */
 @SuppressWarnings("serial")
 public class AspectJAwareAdvisorAutoProxyCreator extends AbstractAdvisorAutoProxyCreator {
@@ -98,6 +107,7 @@ public class AspectJAwareAdvisorAutoProxyCreator extends AbstractAdvisorAutoProx
 	@Override
 	protected boolean shouldSkip(Class<?> beanClass, String beanName) {
 		// TODO: Consider optimization by caching the list of the aspect names
+		//获取所有的候选顾问类 Advisor
 		List<Advisor> candidateAdvisors = findCandidateAdvisors();
 		for (Advisor advisor : candidateAdvisors) {
 			if (advisor instanceof AspectJPointcutAdvisor &&

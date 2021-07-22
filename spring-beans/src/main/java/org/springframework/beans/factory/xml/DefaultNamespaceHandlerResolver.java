@@ -115,24 +115,32 @@ public class DefaultNamespaceHandlerResolver implements NamespaceHandlerResolver
 	@Override
 	@Nullable
 	public NamespaceHandler resolve(String namespaceUri) {
+		/* 获取所有已经配置的handler映射 */
 		Map<String, Object> handlerMappings = getHandlerMappings();
+
+		// 根据命名空间找到对应的映射
 		Object handlerOrClassName = handlerMappings.get(namespaceUri);
 		if (handlerOrClassName == null) {
 			return null;
 		}
 		else if (handlerOrClassName instanceof NamespaceHandler) {
+			// 如果已经实例化过，直接返回
 			return (NamespaceHandler) handlerOrClassName;
 		}
 		else {
 			String className = (String) handlerOrClassName;
 			try {
+				// 反射加载类
 				Class<?> handlerClass = ClassUtils.forName(className, this.classLoader);
 				if (!NamespaceHandler.class.isAssignableFrom(handlerClass)) {
 					throw new FatalBeanException("Class [" + className + "] for namespace [" + namespaceUri +
 							"] does not implement the [" + NamespaceHandler.class.getName() + "] interface");
 				}
+				// 实例化对象
 				NamespaceHandler namespaceHandler = (NamespaceHandler) BeanUtils.instantiateClass(handlerClass);
+				// 调用init方法
 				namespaceHandler.init();
+				// 放入缓存
 				handlerMappings.put(namespaceUri, namespaceHandler);
 				return namespaceHandler;
 			}
@@ -151,6 +159,7 @@ public class DefaultNamespaceHandlerResolver implements NamespaceHandlerResolver
 	 * Load the specified NamespaceHandler mappings lazily.
 	 */
 	private Map<String, Object> getHandlerMappings() {
+		// handlerMappings  volatile变量修饰  双重检查
 		Map<String, Object> handlerMappings = this.handlerMappings;
 		if (handlerMappings == null) {
 			synchronized (this) {
@@ -160,12 +169,21 @@ public class DefaultNamespaceHandlerResolver implements NamespaceHandlerResolver
 						logger.trace("Loading NamespaceHandler mappings from [" + this.handlerMappingsLocation + "]");
 					}
 					try {
+						/**
+						 *
+						 * https://blog.csdn.net/heroqiang/article/details/78611213
+						 *
+						 * 这里就是加载配置文件到内存中，而this.handlerMappingsLocation在调用构造方法初始化时被赋值为META-INF/Spring.handlers，
+						 * 我们来看一下Spring事务自定义标签对应这里的配置，锁定spring-tx包下的META-INF/Spring.handlers
+						 */
+						// 加载配置
 						Properties mappings =
 								PropertiesLoaderUtils.loadAllProperties(this.handlerMappingsLocation, this.classLoader);
 						if (logger.isTraceEnabled()) {
 							logger.trace("Loaded NamespaceHandler mappings: " + mappings);
 						}
 						handlerMappings = new ConcurrentHashMap<>(mappings.size());
+						// 放入缓存
 						CollectionUtils.mergePropertiesIntoMap(mappings, handlerMappings);
 						this.handlerMappings = handlerMappings;
 					}

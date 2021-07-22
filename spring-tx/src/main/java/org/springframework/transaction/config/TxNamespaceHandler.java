@@ -54,7 +54,14 @@ public class TxNamespaceHandler extends NamespaceHandlerSupport {
 				element.getAttribute(TRANSACTION_MANAGER_ATTRIBUTE) : DEFAULT_TRANSACTION_MANAGER_BEAN_NAME);
 	}
 
-
+	/**
+	 *
+	 * https://blog.csdn.net/heroqiang/article/details/78611213
+	 *
+	 * 所以在解析Spring事务自定义标签时就会找到TxNamespaceHandler并调用其init方法：
+	 *
+	 * init方法就是注册对应三个标签的解析器，这里用Spring事务标签举例，其他自定义标签大同小异。
+	 */
 	@Override
 	public void init() {
 		// 初始化 元素标签对应的 解析类是什么 如开启事务注解的解析类是 AnnotationDrivenBeanDefinitionParser

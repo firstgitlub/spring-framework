@@ -1368,6 +1368,7 @@ public class BeanDefinitionParserDelegate {
 	 */
 	@Nullable
 	public BeanDefinition parseCustomElement(Element ele) {
+		/* 解析自定义元素 */
 		return parseCustomElement(ele, null);
 	}
 
@@ -1379,15 +1380,20 @@ public class BeanDefinitionParserDelegate {
 	 */
 	@Nullable
 	public BeanDefinition parseCustomElement(Element ele, @Nullable BeanDefinition containingBd) {
+		// 获取命名空间
 		String namespaceUri = getNamespaceURI(ele);
 		if (namespaceUri == null) {
 			return null;
 		}
+		/* 根据命名空间获取NamespaceHandler */
+		// NamespaceHandlerSupport = handler
 		NamespaceHandler handler = this.readerContext.getNamespaceHandlerResolver().resolve(namespaceUri);
 		if (handler == null) {
 			error("Unable to locate Spring NamespaceHandler for XML schema namespace [" + namespaceUri + "]", ele);
 			return null;
 		}
+		/* 解析自定义标签 */
+		// NamespaceHandlerSupport = handler
 		return handler.parse(ele, new ParserContext(this.readerContext, this, containingBd));
 	}
 
