@@ -29,6 +29,10 @@ import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
  * @author Juergen Hoeller
  * @since 3.0.1
  * @see org.springframework.context.annotation.ConfigurationClassPostProcessor
+ *
+ * 它是一个特殊的 BeanFactoryPostProcessor
+ * 用于在 BeanDefinition 对象注册完成后，访问、新增或者修改BeanDefinition信息。
+ *
  */
 public interface BeanDefinitionRegistryPostProcessor extends BeanFactoryPostProcessor {
 

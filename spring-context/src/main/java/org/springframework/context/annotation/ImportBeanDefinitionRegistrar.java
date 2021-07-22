@@ -57,6 +57,12 @@ import org.springframework.core.type.AnnotationMetadata;
  * @see Import
  * @see ImportSelector
  * @see Configuration
+ *
+ * ImportBeanDefinitionRegistrar 是一个接口，该接口的实现类作用于在 Spring 解析 Bean配置 生成 BeanDefinition 对象阶段。
+ * 在 Spring 解析 Configuration 注解时，向 Spring 容器中增加额外的 BeanDefinition。
+ *
+ * https://www.cnblogs.com/kebibuluan/p/14432019.html
+ *
  */
 public interface ImportBeanDefinitionRegistrar {
 

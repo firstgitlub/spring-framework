@@ -70,6 +70,8 @@ import org.springframework.beans.BeansException;
  * 两种处理器的作用时期:
  * BeanFactoryPostProcessor 作用于 第二步 和 第三步 之间，
  * 而 BeanPostProcessor 作用于 第五步 的初始化的前后。
+ *
+ * Bean工厂后置处理器，用于在BeanDefinition对象注册完成后，修改Bean工厂信息，例如增加或者修改BeanDefinition对象
  */
 @FunctionalInterface
 public interface BeanFactoryPostProcessor {

@@ -44,6 +44,10 @@ import org.springframework.core.AliasRegistry;
  * @see org.springframework.context.support.GenericApplicationContext
  * @see org.springframework.beans.factory.xml.XmlBeanDefinitionReader
  * @see PropertiesBeanDefinitionReader
+ *
+ *
+ * BeanDefinition 的容器，所有的 Bean 定义都注册在 BeanDefinitionRegistry 对象中。
+ *
  */
 public interface BeanDefinitionRegistry extends AliasRegistry {
 

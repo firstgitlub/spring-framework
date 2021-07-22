@@ -56,6 +56,13 @@ import org.springframework.util.ObjectUtils;
  * @see PropertySourcesPropertyResolver
  * @see MutablePropertySources
  * @see org.springframework.context.annotation.PropertySource
+ *
+ * 用于存放Spring配置资源信息，例如spring项目中properties或者yaml文件配置信息均会保存在PropertySource对象中。
+ * Spring支持使用@PropertySource注解，將配置信息加载到Environment对象中。
+ *
+ *
+ * https://www.cnblogs.com/kebibuluan/p/14432019.html
+ *
  */
 public abstract class PropertySource<T> {
 
